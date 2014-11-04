@@ -1,0 +1,13 @@
+1. package dependence: R2OpenBUGS
+
+2. in call.bugs function:
+	change #bugsmodel.dir, #winbugs.dir
+
+3. in the call of #bugs function:
+	bugs.directory -> OpenBUGS.pgm
+
+4. all .bugs file -> .txt file
+
+5. output coda1.txt -> CODAchain1.txt
+	codaIndex.txt -> CODAindex.txt
+

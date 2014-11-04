@@ -1,6 +1,6 @@
-nplcm_fit2<-function(Mobs,Y,X,model_options,mcmc_options){#BEGIN function
+nplcm_fit2<-function(Mobs,Y,X,model_options,mcmc_options, useOpenBUGS=FALSE){#BEGIN function
         #define the generic function to call WinBUGS:
-        if (.Platform$OS.type != "windows"){
+        if (.Platform$OS.type != "windows" & !useOpenBUGS){
                 call.bugs <- function(data, inits, parameters,m.file,
                                       bugsmodel.dir = mcmc_options$bugsmodel.dir,
                                       winbugs.dir   = mcmc_options$winbugs.dir,
@@ -36,7 +36,49 @@ nplcm_fit2<-function(Mobs,Y,X,model_options,mcmc_options){#BEGIN function
                         }
                         rst.bugs;
                 }
-        }else {
+        }
+        else if (.Platform$OS.type != "windows" & useOpenBUGS)
+        {
+#============== define the generic function to call OpenBUGS:
+#-------------- for compatibility, keep bugsmodel.dir and winbugs.dir the same
+                call.bugs <- function(data, inits, parameters,m.file,
+                                      bugsmodel.dir = mcmc_options$bugsmodel.dir,
+                                      winbugs.dir   = mcmc_options$winbugs.dir,
+                                      nitermcmc     = mcmc_options$n.itermcmc,
+                                      nburnin       = mcmc_options$n.burnin,
+                                      nthin         = mcmc_options$n.thin,
+                                      nchains       = mcmc_options$n.chains,
+                                      dic = FALSE, is.debug = mcmc_options$debugstatus,
+                                      workd= mcmc_options$result.folder,...) 
+                {
+                        m.file.OB <- gsub(".bug",".txt",m.file)       # OpenBUGS use .txt format for bugs model
+                        m.file <- paste(bugsmodel.dir, m.file.OB, sep="");
+                        f.tmp <- function() 
+                        {
+                                ##OpenBUGS
+                                gs <- bugs(data, inits, parameters,
+                                           model.file = m.file,
+                                           working.directory=workd,
+                                           n.chains = nchains,
+                                           n.iter   = nitermcmc,
+                                           n.burnin = nburnin,
+                                           n.thin   = nthin,
+                                           OpenBUGS.pgm = winbugs.dir, # argument name different from WinBUGS
+                                           DIC=dic,
+                                           debug=is.debug,...);
+                                
+                                gs;
+                        }
+                        
+                        bugs.try  <- try(rst.bugs <- f.tmp(), silent=FALSE);
+                        if (class(bugs.try) == "try-error") 
+                        {
+                                rst.bugs <- NULL;
+                        }
+                        rst.bugs;
+                }  
+        }
+        else {
                 #define the generic function to call WinBUGS:
                 call.bugs <- function(data, inits, parameters,m.file,
                                       bugsmodel.dir = mcmc_options$bugsmodel.dir,
