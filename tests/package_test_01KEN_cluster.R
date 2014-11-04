@@ -5,6 +5,7 @@ library(R2OpenBUGS)
 library(gplots)
 library(RColorBrewer)
 library(binom)
+library(coda)
 #library(nplcm)
 
 ######### set directories ############
@@ -256,22 +257,40 @@ eda(Mobs, Y, X, eda_options,Pathogen) ########### error reported: Error in if (e
                              winbugs.dir   = winbugs.dir)
 ## END preparation of data for nplcm_fit function---------------------
 
+#model_options:
+dput(model_options,paste0(mcmc_options$result.folder,"/model_options.txt"))
+#mcmc_options:
+dput(mcmc_options,paste0(mcmc_options$result.folder,"/mcmc_options.txt"))
+
+
 ## OpenBUGS fitting
 source(paste0(new.code.dir,"nplcm_fit_modified.R"))
-gs <- nplcm_fit2(Mobs,Y,X,model_options,mcmc_options,useOpenBUGS=TRUE)
+OpenBUGS.use = TRUE;
+gs <- nplcm_fit2(Mobs,Y,X,model_options,mcmc_options,useOpenBUGS=OpenBUGS.use)
+
+## change OpenBUGS output file name to WinBUGS output file name
+if (OpenBUGS.use) 
+{
+        coda.files = paste0(result.folder,"/*.txt")
+        command1 = paste0("rename CODAchain coda ", coda.files) 
+        command2 = paste0("rename CODAindex codaIndex ", coda.files) 
+        system(command1)
+        system(command2)
+}
+
 
 # DN: 1.incorporate results visualization
 #     2.check simulation compatibility
-pdf(paste0(result.folder,"\\",sitename,"_three_panel_plot.pdf"),width=11,height=10)
-nplcm_plot_three_panel(DIR_NPLCM = result.folder,Mobs,Y,X,model_options)
+pdf(paste0(result.folder,"/",sitename,"_three_panel_plot.pdf"),width=11,height=10)
+nplcm_plot_three_panel(DIR_NPLCM = result.folder,ss_upperlimit = .3,eti_upperlimit = .5)
 dev.off()
 
-pdf(paste0(result.folder,"\\",sitename,"_individual_diagnosis.pdf"),
+pdf(paste0(result.folder,"/",sitename,"_individual_diagnosis.pdf"),
     width=16,height=16)
 par(mfrow=c(4,4))
-nplcm_plot_individual_diagnosis(DIR_NPLCM = result.folder,Mobs,Y,X,model_options)
+nplcm_plot_individual_diagnosis(DIR_NPLCM=result.folder,npat=16)
 dev.off()
 
 
 
-save.image(paste0(result.folder,"\\for_replot.RDATA"))
+save.image(paste0(result.folder,"/for_replot.Rda"))
